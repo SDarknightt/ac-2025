@@ -1,8 +1,9 @@
 package org.example.dayone;
 
-public class DayOne {
+public class DayOnePartTwo {
     private Integer dial = 50;
-    private Integer zeroTimes = 0;
+    Integer zeroTimes = 0;
+    String lastStopedDial = "-1";
     public static void main(String[] args) {
         String input = """
             L45
@@ -4108,7 +4109,7 @@ public class DayOne {
 
         String[] movements = input.split("\n");
 
-        DayOne dayOne = new DayOne();
+        DayOnePartTwo dayOne = new DayOnePartTwo();
 
         System.out.println("The dial starts at point " + dayOne.getDial());
         for (String movement : movements) {
@@ -4128,20 +4129,43 @@ public class DayOne {
     void addRight(Integer add) {
         for (int i = 0; i < add; i++) {
             if (dial == 99){
-                dial = 0;
+                setDialToZero();
+                System.out.println("during this rotation, it points at 0 once.");
                 continue;
             }
-            this.dial++;
+            this.incrementDial();
         }
+        lastStopedDial = dial.toString();
     }
 
     void addLeft(Integer remove) {
         for (int i = 0; i < remove; i++) {
             if (dial == 0) {
                 dial = 99;
+                System.out.println("during this rotation, it points at 0 once.");
                 continue;
             }
-            this.dial--;
+            this.decrementDial();
+        }
+    }
+
+    void incrementDial() {
+        dial++;
+        if (dial == 0) {
+            zeroTimes++;
+        }
+    }
+
+    void setDialToZero() {
+        dial = 0;
+
+        zeroTimes++;
+    }
+
+    void decrementDial() {
+        dial--;
+        if (dial == 0) {
+            zeroTimes++;
         }
     }
 
@@ -4156,9 +4180,6 @@ public class DayOne {
             String[] movementArray = movement.split("R");
             addRight(Integer.parseInt(movementArray[1]));
             printRotateAndDial(movement);
-        }
-        if (this.dial == 0) {
-            this.zeroTimes ++;
         }
     }
 
