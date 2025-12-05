@@ -1249,7 +1249,7 @@ public class DayFive {
                 long end = interval[1];
                 // Itera em cada range 100-200 e valida se o valor esta entre eles
                 // Define o start-end do range e avalia se o numero iterado esta dentro de algum dos ranges disponiveis
-                if (actualNumber > start && actualNumber < end) {
+                if (actualNumber >= start && actualNumber <= end) {
                     this.countFresh++;
                     this.fresh.add(actualNumber);
                 }
