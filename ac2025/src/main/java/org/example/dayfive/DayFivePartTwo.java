@@ -1,8 +1,6 @@
 package org.example.dayfive;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
+import java.util.*;
 
 public class DayFivePartTwo {
     private Long countFresh = 0L;
@@ -194,27 +192,55 @@ public class DayFivePartTwo {
 
         DayFivePartTwo dayFive = new DayFivePartTwo();
 
-        Long[][] intervalsFlated = dayFive.arrayStringToArrayIntervals(stringIntervals);
-        dayFive.countFreshs(intervalsFlated);
+        ArrayList<Long[]> intervals = dayFive.arrayStringToArrayIntervals(stringIntervals);
+        dayFive.joinArraysNext(intervals);
+        dayFive.countFreshs(intervals);
         dayFive.printResult();
     }
 
     // Pega string 12-20 e separa em array com intervalos
-    Long[][] arrayStringToArrayIntervals(String[] intervals) {
-        Long[][] arrayIntervals = new Long[intervals.length][];
+    ArrayList<Long[]> arrayStringToArrayIntervals(String[] intervals) {
+        ArrayList<Long[]> arrayIntervals = new ArrayList<>();
         for (int i = 0; i < intervals.length; i++) {
-            arrayIntervals[i] = this.splitInterval(intervals[i]);
+            arrayIntervals.add(i, this.splitInterval(intervals[i]));
         }
         return arrayIntervals;
     }
 
-    Long[] arrayStringToArrayLong(String[] stringifiedNumbers) {
-        Long[] arrayNumber = new Long[stringifiedNumbers.length];
+    /*
+    * Identifica arrays que se sobrepõem -> inicio da atual é <=  o fim do anterior
+    * */
+    void joinArraysNext(ArrayList<Long[]> intervals) {
 
-        for (int i = 0; i < stringifiedNumbers.length; i++) {
-            arrayNumber[i] = Long.parseLong(stringifiedNumbers[i]);
+        // Ordena a lista pelo intervalo de inicio
+        intervals.sort(Comparator.comparingLong(a -> a[0]));
+
+        ArrayList<Long[]> newMergedArray = new ArrayList<>();
+
+        for (Long[] current : intervals) {
+
+            // Apenas para a primeira iteração
+            if (newMergedArray.isEmpty()) {
+                newMergedArray.add(current);
+                continue;
+            }
+
+            Long[] last = newMergedArray.get(newMergedArray.size() - 1);
+
+            long lastEnd = last[1];
+            long currentStart = current[0];
+            long currentEnd = current[1];
+
+            // Se o inicio do atual sobrepõe o final do anterior, edita o final do anterior
+            if (lastEnd + 1 >= currentStart) {
+                last[1] = Math.max(lastEnd, currentEnd);
+            } else {
+                newMergedArray.add(current);
+            }
         }
-        return arrayNumber;
+
+        intervals.clear();
+        intervals.addAll(newMergedArray);
     }
 
     // Retorna inicio e fim de iteração
@@ -226,49 +252,20 @@ public class DayFivePartTwo {
     }
 
 
-    void countFreshs(Long[][] intervals) {
-        //Itera sobre a lista de ranges
-        for (int j=0; j < intervals.length; j++) {
-            Long[] interval = intervals[j];
-            long start = interval[0];
-            long end = interval[1];
-            // Itera em cada range 100-200 e vai adicionando os valores
-            // Define o start-end do range e avalia se o numero iterado esta dentro de algum dos ranges disponiveis
-            for (long num=start; num<=end; num++) {
-                this.freshNumbers.add(num);
-            }
-        }
+    void countFreshs(ArrayList<Long[]> intervals) {
+
+        // Itera listas
+        intervals.forEach((arrayInterval) -> {
+            Long start = arrayInterval[0];
+            Long end = arrayInterval[1];
+
+            this.countFresh += (end - start + 1);
+
+        });
     }
-
-    Long findTheGreaterValue(Long[] numbers) {
-        long higher = numbers[0];
-
-        for (int i = 1; i < numbers.length; i++) {
-            // Não pode ser a ultima posição
-            if (numbers[i] > higher && i != numbers.length - 1) {
-                higher = numbers[i];
-            }
-        }
-
-        return higher;
-    }
-
-    Long findTheLowerValue(Long[] numbers) {
-        long lowest = numbers[0];
-
-        for (int i = 1; i < numbers.length; i++) {
-            // Não pode ser a ultima posição
-            if (numbers[i] < lowest && i != numbers.length - 1) {
-                lowest = numbers[i];
-            }
-        }
-
-        return lowest;
-    }
-
 
     void printResult() {
-        System.out.println("Total freshs: " + this.freshNumbers.size());
+        System.out.println("Total freshs: " + this.countFresh);
     }
 }
 
