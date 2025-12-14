@@ -1,10 +1,8 @@
 package org.example.daynine;
 
-import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.*;
 
 public class DayNinePartTwo {
-    private Long biggestValue = 0L;
     public static void main(String[] args) {
         String inputReal = """
                 98154,50433
@@ -517,34 +515,90 @@ public class DayNinePartTwo {
         // Expected output: 24
 
         String[] stringIntervals = inputReal.split("\n");
-
         DayNinePartTwo dayNine = new DayNinePartTwo();
-
         ArrayList<Long[]> intervals = dayNine.arrayStringToArrayIntervals(stringIntervals);
 
-        // Ordena pelo menor valor X
-        intervals.sort(Comparator.comparingLong(a -> a[0]));
+        // Cria matriz comprimida
+        HashMap<Long, Long> mapUncompressedX = new HashMap<>();
+        HashMap<Long, Long> mapUncompressedY = new HashMap<>();
 
-        Long biggerX = intervals.getLast()[0];
+        ArrayList<Long[]> compressIntervals = dayNine.compressIntervals(intervals, mapUncompressedX, mapUncompressedY);
 
-        // Ordena pelo menor Y
-        intervals.sort(Comparator.comparingLong(a -> a[1]));
-
-        Long biggerY = intervals.getLast()[1];
+        // Ordena pelo menor valor X e Y
+        compressIntervals.sort(Comparator.comparingLong(a -> a[0]));
+        Long biggerX = compressIntervals.getLast()[0];
+        compressIntervals.sort(Comparator.comparingLong(a -> a[1]));
+        Long biggerY = compressIntervals.getLast()[1];
 
         ArrayList<ArrayList<String>> matrix = dayNine.createMatrix(biggerX+1, biggerY+1);
 
-        dayNine.defineRedLightsOnMatrix(matrix, intervals);
+        dayNine.defineRedLightsOnMatrix(matrix, compressIntervals);
         dayNine.printMatrix(matrix);
 
-        dayNine.drawLines(matrix, intervals);
+        dayNine.drawLines(matrix, compressIntervals);
         dayNine.printMatrix(matrix);
 
         dayNine.fillBetweenLines(matrix);
         dayNine.printMatrix(matrix);
 
-        dayNine.findBiggestArea(matrix, intervals);
-        dayNine.printResult();
+        Points biggestInterval = dayNine.findBiggestArea(matrix, compressIntervals, mapUncompressedX, mapUncompressedY);
+        Long[] firstReduced = biggestInterval.first;
+        Long[] firstInterval = {
+            mapUncompressedX.get(firstReduced[0]),
+            mapUncompressedY.get(firstReduced[1])
+        };
+
+        Long[] secondReduced = biggestInterval.second;
+        Long[] secondInterval = {
+            mapUncompressedX.get(secondReduced[0]),
+            mapUncompressedY.get(secondReduced[1])
+        };
+
+        long realWidth  = Math.abs(secondInterval[0] - firstInterval[0])+1;
+        long realHeight = Math.abs(secondInterval[1] - firstInterval[1])+1;
+        long calcArea = realWidth * realHeight;
+
+        System.out.println("Result: " + calcArea);
+    }
+
+    ArrayList<Long[]> compressIntervals(ArrayList<Long[]> intervals, HashMap<Long, Long> mapUncompressedX, HashMap<Long, Long> mapUncompressedY) {
+        ArrayList<Long[]> compressedMatrix = new ArrayList<>();
+
+        // Listas de todos os X e Y sem duplicados ja ordenadas crescentemente
+        Set<Long> Xset = new TreeSet<>();
+        Set<Long> Yset = new TreeSet<>();
+
+        // Para mapear na hora de criar a nova lista reduzida
+        HashMap<Long, Long> mapNormalToLowX = new HashMap<>();
+        HashMap<Long, Long> mapNormalToLowY = new HashMap<>();
+
+        for (Long[] interval : intervals) {
+            Xset.add(interval[0]);
+            Yset.add(interval[1]);
+        }
+
+        ArrayList<Long> X = new ArrayList<>(Xset);
+        ArrayList<Long> Y = new ArrayList<>(Yset);
+
+        // Define os valores comprimidos
+        for (long i=0; i < X.size(); i++) {
+            mapUncompressedX.put(i, X.get((int) i));
+            mapNormalToLowX.put(X.get((int) i), i);
+        }
+
+        for (long i = 0; i < Y.size(); i++) {
+            mapUncompressedY.put(i, Y.get((int) i));
+            mapNormalToLowY.put(Y.get((int) i), i);
+        }
+
+        // Cria o novo intervals comprimido para ser usado nos calculos
+        for (Long[] interval : intervals) {
+            Long reducedX = mapNormalToLowX.get(interval[0]);
+            Long reducedY = mapNormalToLowY.get(interval[1]);
+            compressedMatrix.add(new Long[]{reducedX, reducedY});
+        }
+
+        return  compressedMatrix;
     }
 
     void printMatrix(ArrayList<ArrayList<String>> matrix) {
@@ -673,9 +727,8 @@ public class DayNinePartTwo {
     }
 
     // Encontrar a maior área, mas que todos os elementos sejam # ou X
-
-    void findBiggestArea(ArrayList<ArrayList<String>> matrix, ArrayList<Long[]> intervals) {
-        ArrayList<Long> areas = new ArrayList<>();
+    Points findBiggestArea(ArrayList<ArrayList<String>> matrix, ArrayList<Long[]> intervals, HashMap<Long, Long> mapUncompressedX, HashMap<Long, Long> mapUncompressedY) {
+        TreeMap<Long, Points> map = new TreeMap<>();
 
         // Itera a lista de intervalos
         for (Long[] interval : intervals) {
@@ -689,8 +742,8 @@ public class DayNinePartTwo {
                 // Não compara com o mesmo
                 if (interval == interval2) continue;
                 //Faz módulo por que não pode ser negativo
-                long calcX = (Math.abs(x2 - x1)) + 1;
-                long calcY = (Math.abs(y2 - y1)) + 1;
+                long calcX = (Math.abs(mapUncompressedX.get(x2) - mapUncompressedX.get(x1))) + 1;
+                long calcY = (Math.abs(mapUncompressedY.get(y2) - mapUncompressedY.get(y1))) + 1;
 
                 long calcArea = calcX * calcY;
 
@@ -698,14 +751,13 @@ public class DayNinePartTwo {
 
                 //Adiciona apenas aqueles que seus elementos são apenas valores válidos # X
                 if (isValid) {
-                    areas.add(calcArea);
+                    Points points = new Points(interval, interval2);
+                    map.put(calcArea, points);
                 }
             }
         }
-
-        // Ordena a lista e obtém o maior valor
-        areas.sort(Comparator.comparingLong(a -> a));
-        this.biggestValue = areas.getLast();
+        // Retorna o último valor da lista (maior retangulo)
+        return map.get(map.lastKey());
     }
 
     boolean validateInterval(ArrayList<ArrayList<String>> matrix, Long[] firstInterval, Long[] secondInterval) {
@@ -736,9 +788,13 @@ public class DayNinePartTwo {
         return true;
     }
 
-
-    void printResult() {
-        System.out.println("Biggest area: " + this.biggestValue);
+    static class Points {
+        Long[] first;
+        Long[] second;
+        public Points(Long[] first, Long[] second) {
+            this.first = first;
+            this.second = second;
+        }
     }
 }
 
